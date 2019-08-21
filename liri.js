@@ -1,10 +1,3 @@
-//Liri takes the following arguments
-// * my-tweets
-// * spotify-this-song
-// * movie-this
-// * do-what-it-says
-
-//these add other programs to this one
 require("dotenv").config();
 let dataKeys = require("./keys.js");
 let fs = require('fs'); //file system
@@ -13,11 +6,9 @@ let Spotify = require('node-spotify-api');
 let request = require('request');
 var inquirer = require('inquirer');
 
-let space = "\n" + "\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0";
-let header = "================= Extraordinary Liri found this ...==================";
+let space = "\n";
+let header = "========================================================";
 
-
-// Function that writes all the data from output to the logfile
 function writeToLog(data) {
     fs.appendFile("log.txt", '\r\n\r\n', function (err) {
         if (err) {
@@ -33,14 +24,11 @@ function writeToLog(data) {
     });
 }
 
-
-// =================================================================
-// Spotify function, Spotify api
 function getMeSpotify(songName) {
     let spotify = new Spotify(dataKeys.spotify);
-    // If there is no song name, set the song to Blink 182's What's my age again
+
     if (!songName) {
-        songName = "What's my age again";
+        songName = "Long December";
     }
     spotify.search({ type: 'track', query: songName }, function (err, data) {
         if (err) {
@@ -48,7 +36,7 @@ function getMeSpotify(songName) {
             return;
         } else {
             output =
-                "================= LIRI FOUND THIS FOR YOU...==================" +
+                "========================================================" +
                 space + "Song Name: " + "'" + songName.toUpperCase() + "'" +
                 space + "Album Name: " + data.tracks.items[0].album.name +
                 space + "Artist Name: " + data.tracks.items[0].album.artists[0].name +
@@ -65,7 +53,7 @@ let getTweets = function () {
     let params = { screen_name: 'ednas', count: 10 };
 
     client.get('statuses/user_timeline', params, function (err, tweets, res) {
-        let data = []; //empty array to hold data
+        let data = [];
 
         data.push(space + header);
         if (err) {
@@ -122,7 +110,7 @@ let questions = [{
     type: 'list',
     name: 'programs',
     message: 'What would you like to do?',
-    choices: ['Spotify', 'Movie', 'Get Latest Tweets', 'Name my cat', 'NASA info', 'Do what it says']
+    choices: ['Spotify', 'Movie', 'Get Latest Tweets',]
 },
 {
     type: 'input',
@@ -145,7 +133,6 @@ let questions = [{
 inquirer
     .prompt(questions)
     .then(answers => {
-        // Depending on which program the user chose to run it will do the function for that program
         switch (answers.programs) {
             case 'Get Latest Tweets':
                 getTweets();
