@@ -1,7 +1,6 @@
 require("dotenv").config();
 let dataKeys = require("./keys.js");
-let fs = require('fs'); //file system
-let twitter = require('twitter');
+let fs = require('fs');
 let Spotify = require('node-spotify-api');
 let request = require('request');
 var inquirer = require('inquirer');
@@ -24,6 +23,45 @@ function writeToLog(data) {
     });
 }
 
+function doWhatItSays() {
+    // Reads the random text file and passes it to the spotify function
+    fs.readFile("random.txt", "utf8", function (error, data) {
+        getMeSpotify(data);
+    });
+}
+
+function getMeConcerts(bandName) {
+    if (!bandName) {
+        bandName = "Foo Fighters";
+    }
+
+    let queryconcertsUrl = "https://rest.bandsintown.com/artists/" + bandName + "/events?app_id=codingbootcamp";
+    request(queryconcertsUrl, function (error, response, body) {
+
+        if (!error && response.statusCode === 200) {
+
+            var JS = JSON.parse(body);
+            for (i = 0; i < JS.length; i++) {
+                var dateTime = JS[i].datetime;
+                var month = dateTime.substring(5, 7);
+                var year = dateTime.substring(0, 4);
+                var day = dateTime.substring(8, 10);
+                var dateForm = month + "/" + day + "/" + year
+
+                var output =
+                    header +
+                    space + "Name: " + JS[i].venue.name +
+                    space + "City: " + JS[i].venue.city +
+                    space + "Country: " + JS[i].venue.country +
+                    space + "Date: " + dateForm + space;
+
+                console.log(output);
+                writeToLog(output);
+            }
+        }
+    });
+}
+
 function getMeSpotify(songName) {
     let spotify = new Spotify(dataKeys.spotify);
 
@@ -36,7 +74,7 @@ function getMeSpotify(songName) {
             return;
         } else {
             output =
-                "========================================================" +
+                header +
                 space + "Song Name: " + "'" + songName.toUpperCase() + "'" +
                 space + "Album Name: " + data.tracks.items[0].album.name +
                 space + "Artist Name: " + data.tracks.items[0].album.artists[0].name +
@@ -48,38 +86,11 @@ function getMeSpotify(songName) {
 
 }
 
-let getTweets = function () {
-    let client = new twitter(dataKeys.twitter);
-    let params = { screen_name: 'ednas', count: 10 };
-
-    client.get('statuses/user_timeline', params, function (err, tweets, res) {
-        let data = [];
-
-        data.push(space + header);
-        if (err) {
-            console.log('Error occured: ' + err);
-            return;
-        } else {
-            for (let i = 0; i < tweets.length; i++) {
-                data.push(
-                    space + 'Created at: ' + tweets[i].created_at +
-                    space + 'Tweet: ' + tweets[i].text + "\n"
-                );
-            }
-            let newData = data.join('');
-            console.log(newData);
-            writeToLog(newData);
-        }
-    });
-};
-
 let getMeMovie = function (movieName) {
 
     if (!movieName) {
         movieName = "Mr Nobody";
     }
-    //Get your OMDb API key creds here http://www.omdbapi.com/apikey.aspx
-    // t = movietitle, y = year, plot is short, then the API key
     let urlHit = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=33981212";
 
     request(urlHit, function (err, res, body) {
@@ -88,7 +99,8 @@ let getMeMovie = function (movieName) {
             return;
         } else {
             let jsonData = JSON.parse(body);
-            output = space + header +
+            output =
+                header +
                 space + 'Title: ' + jsonData.Title +
                 space + 'Year: ' + jsonData.Year +
                 space + 'Rated: ' + jsonData.Rated +
@@ -110,12 +122,20 @@ let questions = [{
     type: 'list',
     name: 'programs',
     message: 'What would you like to do?',
-    choices: ['Spotify', 'Movie', 'Get Latest Tweets',]
+    choices: ['Concert', 'Movie', 'Spotify', 'Do What It Says']
+},
+{
+    type: 'input',
+    name: 'bandChoice',
+    message: 'What is the name of the band you are looking for?',
+    when: function (answers) {
+        return answers.programs == 'Concert';
+    }
 },
 {
     type: 'input',
     name: 'movieChoice',
-    message: 'What\'s the name of the movie you would like?',
+    message: 'What is the name of the movie you would like?',
     when: function (answers) {
         return answers.programs == 'Movie';
     }
@@ -123,7 +143,7 @@ let questions = [{
 {
     type: 'input',
     name: 'songChoice',
-    message: 'What\'s the name of the song you would like?',
+    message: 'What is the name of the song you would like?',
     when: function (answers) {
         return answers.programs == 'Spotify';
     }
@@ -134,8 +154,8 @@ inquirer
     .prompt(questions)
     .then(answers => {
         switch (answers.programs) {
-            case 'Get Latest Tweets':
-                getTweets();
+            case 'Concert':
+                getMeConcerts(answers.bandChoice);
                 break;
             case 'Spotify':
                 getMeSpotify(answers.songChoice);
@@ -143,7 +163,10 @@ inquirer
             case 'Movie':
                 getMeMovie(answers.movieChoice);
                 break;
+            case 'Do What It Says':
+                doWhatItSays();
+                break;
             default:
-                console.log('LIRI doesn\'t know that');
+                console.log('LIRI does not know that');
         }
     });
